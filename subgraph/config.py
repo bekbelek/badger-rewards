@@ -8,6 +8,7 @@ subgraph_ids = {
 subgraph_urls = {
     "bsc": "https://api.thegraph.com/subgraphs/name/axejintao/badger-dao-bsc",
     "eth": "https://api.thegraph.com/subgraphs/name/axejintao/badger-dao",
+    "fuse-pool": "https://api.thegraph.com/subgraphs/name/platocrat/fuse-subgraph",
     "polygon": "https://api.thegraph.com/subgraphs/name/axejintao/badger-dao-polygon",
     "xdai": "https://api.thegraph.com/subgraphs/name/axejintao/badger-dao-xdai",
 }
