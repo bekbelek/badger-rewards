@@ -1,3 +1,4 @@
+from helpers.constants import BBADGER, BDIGG
 from helpers.discord import send_message_to_discord
 from subgraph.subgraph_utils import make_gql_client
 from rich.console import Console
@@ -261,8 +262,8 @@ def fetch_chain_balances(chain, block):
         raise e
 
 
-def fetch_fuse_pool_balances(client, chain, block):
-    if chain is not "eth":
+def fetch_fuse_pool_balances(client, chain, block, digg_balances, badger_balances):
+    if chain != "eth":
         console.log("Fuse pools are only active on ETH")
         return None
 
@@ -284,7 +285,7 @@ def fetch_fuse_pool_balances(client, chain, block):
     with open("abis/eth/ERC20.json") as j:
         ERC20_ABI = json.load(j)
 
-    for symbol, data in ctoken_data:
+    for symbol, data in ctoken_data.items():
         ftoken_contract = env_config.web3.eth.contract(
             address=env_config.web3.toChecksumAddress(data["contract"]),
             abi=DELEGATOR_ABI,
@@ -305,7 +306,7 @@ def fetch_fuse_pool_balances(client, chain, block):
     query = gql(
         f"""
         query fetch_fuse_pool_balances($skip_amount: Int, $block_number: Block_height) {{
-            accountCTokens(block: $block_number, skip: $skip_amount, first: 1000, where: {{ symbol_in:{list(ctoken_data.keys())} }}) {{
+            accountCTokens(block: $block_number, skip: $skip_amount, first: 1000, where: {{ symbol_in:{json.dumps(list(ctoken_data.keys()))} }}) {{
                 symbol
                 account{{
                     id
@@ -317,41 +318,41 @@ def fetch_fuse_pool_balances(client, chain, block):
     )
 
     skip = 0
-    balances = {}
-
     variables = {"block_number": {"number": block - 50}, "skip_amount": skip}
 
     try:
         while True:
             variables["skip_amount"] = skip
             results = client.execute(query, variable_values=variables)
-            for result in results:
-                symbol = result["symbol"]
-                ctoken_balance = float(result["cTokenBalance"])
-                balance = ctoken_balance * ctoken_data[symbol]["exchange_rate"]
-                account = result["account"]["id"].lower()
-
-                if balance <= 0:
-                    continue
-
-                sett = ctoken_data[symbol]["underlying_contract"]
-
-                if sett not in balances:
-                    balances[sett] = {}
-
-                    if account not in balances[sett]:
-                        balances[sett][account] = balance
-                    else:
-                        balances[sett][account] += balance
-
-            if len(results) == 0:
+            ctoken_results = results["accountCTokens"]
+            if len(ctoken_results) == 0:
                 break
             else:
-                console.log("Fetching {} fuse balances".format(len(results)))
+                console.log("Fetching {} fuse balances".format(len(ctoken_results)))
+                for result in ctoken_results:
+                    symbol = result["symbol"]
+                    ctoken_balance = float(result["cTokenBalance"])
+                    balance = ctoken_balance * ctoken_data[symbol]["exchange_rate"]
+                    account = result["account"]["id"].lower()
+
+                    if balance <= 0:
+                        continue
+
+                    sett = ctoken_data[symbol]["underlying_contract"]
+
+                    if sett == BDIGG:
+                        if account not in digg_balances[sett]:
+                            digg_balances[sett][account] = balance
+                        else:
+                            digg_balances[sett][account] += balance
+                    elif sett == BBADGER:
+                        if account not in badger_balances[sett]:
+                            badger_balances[sett][account] = balance
+                        else:
+                            badger_balances[sett][account] += balance
                 skip += 1000
 
-        console.log("Fetched {} total fuse balances".format(len(balances)))
-        return balances
+        return badger_balances, digg_balances
 
     except Exception as e:
         send_message_to_discord(

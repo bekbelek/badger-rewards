@@ -9,7 +9,15 @@ console = Console()
 
 boostsFileName = "badger-boosts.json"
 
-s3 = boto3.client("s3")
+s3 = (
+    boto3.client("s3")
+    if not env_config.test
+    else boto3.client(
+        "s3",
+        aws_access_key_id=env_config.aws_access_key_id,
+        aws_secret_access_key=env_config.aws_secret_access_key,
+    )
+)
 
 
 def upload_boosts(boostData):
