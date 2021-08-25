@@ -33,7 +33,7 @@ def fetch_tree_distributions(startBlock, endBlock, chain):
         """
     )
     lastDistId = "0x0000000000000000000000000000000000000000"
-    variables = {"blockHeight": {"number": endBlock}}
+    variables = {"blockHeight": {"number": 18349740}}
     treeDistributions = []
     while True:
         variables["lastDistId"] = {"id_gt": lastDistId}

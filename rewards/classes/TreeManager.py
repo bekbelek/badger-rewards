@@ -27,7 +27,7 @@ class TreeManager:
             rewards["merkleTree"]["cycle"],
             rewards["merkleTree"]["startBlock"],
             rewards["merkleTree"]["endBlock"]
-        ).call({"from": PROPOSER_ADDRESS, "gasPrice": '200000000000'}))
+        ).call({"from": PROPOSER_ADDRESS, "gasPrice": '200000000000'})
 
     def propose_root(self, rewards):
         self.badgerTree.functions.proposeRoot(

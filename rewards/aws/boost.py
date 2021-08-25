@@ -10,7 +10,6 @@ boostsFileName = "badger-boosts.json"
 def upload_boosts(boostData):
     """Upload boosts file to aws bucket
 
-    :param test:
     :param boostData: calculated boost information
     """
     bucket = get_bucket(env_config.test)

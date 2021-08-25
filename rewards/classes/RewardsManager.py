@@ -21,19 +21,33 @@ class RewardsManager:
         self.apyBoosts = {}
 
     def fetch_sett_snapshot(self, block: int, sett: str):
+        """Fetch sett balances at a certain block
+
+        :param block:
+        :param sett:
+        """
         return sett_snapshot(self.chain, block, sett)
 
-    def get_sett_from_strategy(self, strat: str):
+    def get_sett_from_strategy(self, strat: str) -> str:
+        """Determine vault address from strategy address
+
+        :param strat: strategy
+        """
         strategy = make_contract(strat, "BaseStrategy", self.chain)
         controller = make_contract(
             strategy.functions.controller().call(), "Controller", self.chain
         )
         want = strategy.functions.want().call()
         sett = controller.functions.vaults(want).call()
-        console.log(sett)
         return sett
 
     def calculate_sett_rewards(self, sett, schedulesByToken, boosts):
+        """Calculate rewards for a particular sett using schedules/boosts
+
+        :param sett: sett to calculate rewards for
+        :param schedulesByToken: unlock schedules used for rewards
+        :param boosts:
+        """
         startTime = self.web3.eth.getBlock(self.start)["timestamp"]
         endTime = self.web3.eth.getBlock(self.end)["timestamp"]
         rewards = RewardsList(self.cycle)
@@ -58,7 +72,13 @@ class RewardsManager:
                     )
         return rewards
 
-    def calculate_all_sett_rewards(self, setts: List[str], allSchedules, boosts):
+    def calculate_all_sett_rewards(self, setts: List[str], allSchedules, boosts) -> RewardsList:
+        """Calculate rewards for a list of setts
+
+        :param setts: list of setts
+        :param allSchedules: dict of schedules per sett
+        :param boosts:
+        """
         allRewards = []
         for sett in setts:
             token = make_contract(sett, "ERC20", self.chain)
@@ -71,7 +91,12 @@ class RewardsManager:
 
         return combine_rewards(allRewards, self.cycle + 1)
 
-    def get_distributed_for_token_at(self, token, endTime, schedules):
+    def get_distributed_for_token_at(self, token, endTime, schedules) -> int:
+        """Calculate the progress of unlock schedules at the current time
+        :param token:
+        :param endTime:
+        :param schedules:
+        """
         totalToDistribute = 0
         for index, schedule in enumerate(schedules):
             if endTime < schedule.startTime:
@@ -112,6 +137,12 @@ class RewardsManager:
         return totalToDistribute
 
     def boost_sett(self, boosts, sett, snapshot):
+        """Boost a sett and save apy information
+        
+        :param boosts:
+        :param sett:
+        :param snapshot:
+        """
         if snapshot.settType == "nonNative":
             preBoost = {}
             for user in snapshot:
@@ -130,7 +161,10 @@ class RewardsManager:
                 self.apyBoosts[sett][user.address] = postBoost / preBoost[user.address]
         return snapshot
 
-    def calculate_tree_distributions(self):
+    def calculate_tree_distributions(self) -> RewardsList:
+        """
+        Distribute rewards from TreeDistribution events on chain
+        """
         treeDistributions = fetch_tree_distributions(self.start, self.end, self.chain)
         console.log(
             "Fetched {} tree distributions between {} and {}".format(
@@ -139,14 +173,17 @@ class RewardsManager:
         )
         rewards = RewardsList(self.cycle + 1)
         for dist in treeDistributions:
-            console.log(dist)
             block = int(dist["blockNumber"])
             token = dist["token"]["address"]
             strategy = dist["id"].split("-")[0]
             sett = self.get_sett_from_strategy(strategy)
             balances = self.fetch_sett_snapshot(block, sett)
             amount = int(dist["amount"])
-            rewardsUnit = amount / sum([u.balance for u in balances])
+            sumBalances = sum([u.balance for u in balances])
+            if sumBalances == 0:
+                rewardsUnit = 0
+            else:
+                rewardsUnit = amount / sum([u.balance for u in balances])
             for user in balances:
                 userRewards = rewardsUnit * user.balance
                 rewards.increase_user_rewards(

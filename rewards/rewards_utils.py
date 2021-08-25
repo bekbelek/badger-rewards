@@ -42,7 +42,7 @@ def combine_balances(balances) -> UserBalances:
     return allBalances
 
 
-def combine_rewards(rewardsList, cycle):
+def combine_rewards(rewardsList, cycle) -> RewardsList:
     combinedRewards = RewardsList(cycle)
     for rewards in rewardsList:
         for user, claims in rewards.claims.items():
