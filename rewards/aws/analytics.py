@@ -1,18 +1,19 @@
 from rich.console import Console
 from rewards.aws.helpers import s3
+from config.env_config import env_config
 import json
 
 console = Console()
 analyticsBucket = "badger-analytics"
 
 
-def upload_analytics(cycle: int, data):
+def upload_analytics(cycle: int, data, chain: str):
     """
     Upload analytics data to analytics bucket
     :param cycle: which cycle to upload
     :param data: cycle information
     """
-    jsonKey = "logs/{}.json".format(cycle)
+    jsonKey = f"logs-{chain}/{cycle}.json"
     console.log("Uploading file to s3://" + analyticsBucket + "/" + jsonKey)
     s3.put_object(
         Body=str(json.dumps(data)),
@@ -23,12 +24,12 @@ def upload_analytics(cycle: int, data):
     console.log("✅ Uploaded file to s3://" + analyticsBucket + "/" + jsonKey)
 
 
-def upload_schedules(data):
+def upload_schedules(data, chain: str):
     """
     Upload schedules to analytics bucket
     :param data: schedules to upload
     """
-    jsonKey = "schedules.json"
+    jsonKey = f"schedules-{chain}.json"
     console.log("Uploading file to s3://" + analyticsBucket + "/" + jsonKey)
     s3.put_object(
         Body=str(json.dumps(data)),
